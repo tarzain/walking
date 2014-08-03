@@ -123,8 +123,7 @@
     function getVelocity(){
       if(averageLightness&&averageLightnessLast){
         var dL = averageLightness-averageLightnessLast;
-        console.log(dL)
-        return 0.02-dL;
+        return Math.abs(dL-0.03)*1000;
       }
       return 0;
     }
@@ -133,8 +132,11 @@
       resize();
 
       var velocity = getVelocity();
+              console.log(velocity);
 
-      camera.translateZ( - velocity );
+      if(velocity > 1.8){
+        camera.translateZ( - velocity * dt);
+      }
 
       //camera.translateZ (-400);
 
@@ -246,7 +248,7 @@
         }
         calculateAverages();
       }
-    }, 200);
+    }, 2000);
   }
 
   function calculateAverages(){
