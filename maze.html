@@ -1,0 +1,669 @@
+
+<!DOCTYPE html>
+
+<!--
+
+__  __                 ____  _____  
+|  \/  |               |___ \|  __ \ 
+| \  / | __ _ _______    __) | |  | |
+| |\/| |/ _` |_  / _ \  |__ <| |  | |
+| |  | | (_| |/ /  __/  ___) | |__| |
+|_|  |_|\__,_/___\___| |____/|_____/    By Emin Kura
+
+
+Visit http://eminkura.com
+
+
+-->
+<html>
+<head>
+<title>Maze 3D - WebGL</title>
+<link href='http://fonts.googleapis.com/css?family=Ceviche+One' rel='stylesheet' type='text/css'>
+
+
+<style>
+  *{
+  	margin: 0;
+  	padding: 0;
+  	outline: none;
+  	-webkit-user-select: none;
+		-moz-user-select: none;
+		-o-user-select: none;
+		-ms-user-select: none;
+		 user-select: none;
+  }
+  body{
+  	font-family: Helvetica, Arial, sans-serif;
+  }
+  .canvas3d{
+  	position: fixed;
+  	top: 0;
+  	right: 0;
+  }
+  
+  .preview{
+
+  	 width: 430px;
+  	 color: #FFF;
+  	 background: #0F0F0F;
+  	 position: fixed;
+  	 top: 0px;
+  	 right: 0px;
+  	 z-index: 9;
+  	 padding: 2px;
+  	 /*opacity: .8;*/
+  	 border-radius: 6px;
+  	 border: 1px solid #000;
+  }
+
+  .info{
+  	font-size: 14px;
+  	float: left;
+  	width: 210px;
+  	padding: 10px 0 0 10px;
+  }
+
+  #canvas2d{
+  	width: 200px;
+  	float: left;
+  }
+
+  #time{
+  	position: fixed;
+ 	top: 0;
+ 	left: 0;
+ 	width: 100%;
+ 	color: #FFF;
+ 	z-index: 999;
+  	font-family: 'Ceviche One', cursive;
+  	font-size: 48px;
+  	text-align: center;
+  }
+
+   #scores{
+  	position: fixed;
+ 	top: 0;
+ 	left: 0;
+ 	width: 350px;
+ 	height: 120px;
+ 	color: #FFF;
+ 	z-index: 9991;
+  	font-family: 'Ceviche One', cursive;
+  	font-size: 48px;
+  	text-align: center;
+  	display: none;
+  }
+
+</style>
+
+
+<script src="three.min.js"></script>
+<script src="maze.js"></script>
+</head>
+<body>
+	<div id="time"></div>
+	<div id="scores">
+		<div>High Score: <span id="scoreElement"></span></div>
+		
+	</div>
+	<div class="preview">
+	<canvas id="canvas2d"></canvas>
+	<div class="info">
+	<div  style="margin-top: 40px;text-align: center;font-size: 10px;font-style:italic;" >Created By <a style="color: #FFF;" target="_blank" href="http://eminkura.com">Emin Kura</a> - Powered By <a style="color: #FFF;" target="_blank" href="https://github.com/mrdoob/three.js">Three.js</a></div>
+	</div>
+	</div>
+
+<script>
+
+
+var camera, cameraBox, scene, renderer, scoreTable, scoreElement, youImage, finishImage,  pause = true, currentTime = 0,
+   geometry, material,  mesh, endPLight, keyEvents = {
+   	'up': false,
+   	'down': false,
+   	'right': false,
+   	'left' : false
+   };
+
+
+var PI2 = 2 * Math.PI,
+    movementAmount = 25,
+    ctx, scale = 1, maze;
+    
+    
+// maze size
+
+var mazeSize = 11000;    
+		
+		
+		function createPreview(){
+			
+			var canvas = document.querySelector( '#canvas2d' );
+			
+			var w = 200, 
+				h = 200;
+			
+				canvas.width = w;
+				canvas.height = h;
+			
+				scale = w / mazeSize; 	
+			
+				ctx = canvas.getContext( '2d' );
+				
+				ctx.lineJoin= 'bevel' /* You can use 'round', 'bevel', 'miter' */ ;
+				ctx.lineCap= 'butt' /* You can use 'butt', 'round', 'square' */ ;
+				ctx.lineWidth= 2.0 ;			
+
+		}
+
+		function createScene(){
+
+			var sceneTemp = new THREE.Scene();
+
+			keyEvents = {
+   				'up': false,
+   				'down': false,
+   				'right': false,
+   				'left' : false
+			   };
+
+
+	       // scene.fog = new THREE.FogExp2( 0xefd1b5, 0.00055 );
+	
+	        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+	        camera.position.z =  -mazeSize / 2 + 500;
+	        camera.position.x =  -mazeSize / 2 + 500;
+	        camera.rotation.y = Math.PI;
+	        sceneTemp.add( camera );
+
+			currentTime = 0;
+			
+			
+			var cameraBoxGeo = new THREE.CubeGeometry( 10, 10, 10 );
+			var cameraBoxMat = new THREE.MeshBasicMaterial( { wireframe: true, color: 0x0f0 } );
+			
+			    cameraBox = new THREE.Mesh( cameraBoxGeo, cameraBoxMat );
+				
+		
+			
+										
+			var startPLight = new THREE.PointLight( 0xFFFFFF, 1, 1000 );
+			
+				startPLight.position.x = -mazeSize / 2 + 400 ;
+				startPLight.position.z = -mazeSize / 2 + 400 ;
+				startPLight.position.y = 600;
+				
+						
+				
+				sceneTemp.add( startPLight );	
+			
+			
+			
+			 endPLight = new THREE.PointLight( 0xAE20C7, 1, 2000 );
+			
+				endPLight.position.x = mazeSize / 2 - 400 ;
+				endPLight.position.z = mazeSize / 2 - 400 ;
+				endPLight.position.y = 600;
+				
+						
+				
+				sceneTemp.add( endPLight );
+			
+			
+						
+			// ceiling plane			
+	        var ceilgeo = new THREE.CubeGeometry(  mazeSize, 1, mazeSize );  // new THREE.PlaneGeometry( mazeSize, mazeSize, 100, 100 ); 
+	       		
+	       	var ceilTexture = THREE.ImageUtils.loadTexture( "resources/ql8.jpg" );
+			ceilTexture.repeat.set( 50, 50 );
+			ceilTexture.wrapS = ceilTexture.wrapT = THREE.RepeatWrapping;
+			
+			
+			var ceilMaterial = new THREE.MeshPhongMaterial( { map: ceilTexture, color: 0xffffff, ambient: 0x777777, specular: 0x999999, shininess: 15, shading: THREE.SmoothShading } );
+		
+			
+	
+	        var ceilMesh = new THREE.Mesh( ceilgeo, ceilMaterial );
+	        
+
+	        sceneTemp.add( ceilMesh );
+
+			ceilMesh.rotation.x +=  Math.PI;
+			
+			ceilMesh.position.y += 1003;
+			
+			
+			// floor plane
+			
+				        geometry = new  THREE.CubeGeometry(  mazeSize, 1, mazeSize ); //THREE.PlaneGeometry( mazeSize, mazeSize, 100, 100 );
+				       
+				       	var imgTexture = THREE.ImageUtils.loadTexture( "resources/ql0.jpg" );
+						imgTexture.repeat.set( 50, 50 );
+						imgTexture.wrapS = imgTexture.wrapT = THREE.RepeatWrapping;
+						
+				
+						material = new THREE.MeshPhongMaterial( { map: imgTexture, color: 0xffffff, ambient: 0x777777, specular: 0x999999, shininess: 15, shading: THREE.SmoothShading } );
+					
+					
+				
+				        mesh = new THREE.Mesh( geometry, material );
+				        
+				        sceneTemp.add( mesh );
+			
+					//	mesh.rotation.x += 3 *  Math.PI / 2;
+			
+			
+			
+			camera.position.y += 600;
+			
+			
+			var light = new THREE.AmbientLight( 0xFFFFFF );
+			
+			sceneTemp.add( light );
+			
+			
+
+			return sceneTemp;
+
+		}
+		
+		function mazeInit(){
+
+			var maze2DSize = mazeSize / 1000;
+			
+			maze = new Maze( maze2DSize, maze2DSize, 1000 );
+			
+			maze.paint2D( ctx, scale );
+
+			maze.paint();
+
+		}
+	
+	    function init() {
+	    	
+	    	timeElement = document.querySelector( '#time' );
+
+	    	scoreTable = document.querySelector( '#scores' );
+	    	scoreElement = document.querySelector( '#scoreElement' );
+
+
+	    	createPreview();
+	
+	        scene = createScene();
+
+			mazeInit();
+
+	        pause = false;
+				        
+	        renderer = new THREE.WebGLRenderer();
+	       	        
+	        renderer.setSize( window.innerWidth, window.innerHeight );
+			
+	        renderer.domElement.className = 'canvas3d';
+
+	        document.body.appendChild( renderer.domElement );
+
+	        effect = new THREE.StereoEffect(renderer);
+	
+	    }
+		
+		
+			
+		// camera y rotation change notifier
+		
+		var cameraRotationChanged = true;
+		
+		// for up down movements camera angle trick
+		var angle;
+		
+		// up and down calc
+		
+ 		var movX,
+	    	 movZ;
+		
+		// righ and left calc
+					
+		var movXRL, // right and left movement
+		 	movZRL;
+		
+		
+		var movementVec = new THREE.Vector3( 0, 0, 0 );
+		var movementVecRL = new THREE.Vector3( 0, 0, 0 );
+		
+	    function animate() {
+	
+	        
+	        requestAnimationFrame( animate );
+	        render();
+			
+			
+
+			
+			// key events
+		
+			// no event fired, don't make calculations
+		
+		if( keyEvents.up || keyEvents.down || keyEvents.right || keyEvents.left ){
+			
+			// check intersections with walls
+			
+			
+			
+			
+			
+			
+			if( cameraRotationChanged ){
+				
+				// recalculate all
+				
+			    angle = Math.PI / 2 + camera.rotation.y;
+				
+				// up and down calc
+				
+				 movX = -movementAmount * Math.cos( angle );
+				 movZ = movementAmount * Math.sin( angle );
+				
+				// righ and left calc
+							
+				 movXRL = -movementAmount * Math.cos( camera.rotation.y ); // right and left movement
+				 movZRL = movementAmount * Math.sin( camera.rotation.y );
+				
+				
+				cameraRotationChanged = false;
+			}
+			
+			var collisions;
+
+			if(  keyEvents.up  ){
+				movementVec.x = -movX;
+				movementVec.z = -movZ;
+			}
+
+			if( keyEvents.down ){
+				movementVec.x = movX;
+				movementVec.z = movZ;
+			}
+
+
+			if(  keyEvents.left ){
+				movementVecRL.x = movXRL;
+				movementVecRL.z = movZRL;
+			}
+
+			if(  keyEvents.right ){
+				movementVecRL.x = -movXRL;
+				movementVecRL.z = -movZRL;
+			}
+			
+			
+		
+			collisions = maze.checkIntersections( movementVec, movementVecRL );			
+			
+			if( keyEvents.up && !collisions.up ) {
+				camera.position.x -= movX;
+				camera.position.z -= movZ;
+			}	
+			if( keyEvents.down && !collisions.down ) {
+				camera.position.x += movX;
+				camera.position.z += movZ;
+			}	
+			if( keyEvents.right && !collisions.right ) {
+				camera.position.x -= movXRL;
+				camera.position.z -= movZRL;
+			}	
+			if( keyEvents.left && !collisions.left ) {
+				camera.position.x += movXRL;
+				camera.position.z += movZRL;
+			}
+			
+			// paint 2d maze to canvas			
+			maze.paint2D( ctx, scale );	
+		
+		
+		}	
+
+
+			var endDif = endPLight.position.distanceTo( camera.position );
+			
+			if( endDif < 300 ){
+				pause = true;
+				setScore();
+				newGame();
+			}
+
+			cameraBox.position.x = camera.position.x;
+			cameraBox.position.y = camera.position.y;
+			cameraBox.position.z = camera.position.z;
+			
+			cameraBox.rotation.x = camera.rotation.x;
+			cameraBox.rotation.y = camera.rotation.y;
+			cameraBox.rotation.z = camera.rotation.z;
+		
+		
+	    }
+		var lastUpdate = ( new Date() ).getTime();
+	    function render() {
+		      if( !pause ){				
+		        renderer.render( scene, camera );
+		        var now = ( new Date() ).getTime();
+		        if( now - lastUpdate >= 1000 ){
+		        	currentTime += 1;
+		        	lastUpdate = now;
+		        	timeElement.textContent = currentTime;
+
+		        }
+		    }
+	    }
+	    
+	    function showScore(){
+	    	var score = localStorage.getItem( 'score' );
+
+	    	if( score !== null ){
+	    		scoreElement.textContent = score;
+	    	}else{
+	    		scoreElement.textContent = '-';
+	    	}
+
+	    	scoreTable.style.display = 'block';
+	    }
+
+	    function hideScore(){
+	    	scoreTable.style.display = 'none';
+	    }
+
+	    function setScore(){
+	    	var score = localStorage.getItem( 'score' );
+
+	   			if( score !== null ){
+	   				var scoreP = parseInt( score );
+	   					
+	   				if( currentTime < scoreP ){
+	   					localStorage.setItem( 'score', currentTime );
+	   				}
+
+	   			}else{
+	   				localStorage.setItem( 'score', currentTime );
+	   			}
+	    }
+
+	   	function newGame(){
+	   		cameraRotationChanged = true;
+	   		scene = createScene();
+	   		mazeInit();
+	   		pause = false;
+	   	}
+	    
+	    // Key Events Handling
+	    
+	    window.addEventListener( 'keydown', function(event) {
+	    	
+	    	var key = event.keyCode || event.which;
+	    		
+	    	if( pause ){
+	    		return;
+	    	}
+
+				switch (key) {
+					case 38:
+					case 87:
+						//up and W
+						keyEvents.up = true;
+					break;
+					
+					case 40:
+					case 83:
+						//down and S
+						keyEvents.down = true;
+					break;
+					
+					case 39:
+					case 68:
+						//right and D
+						keyEvents.right = true;
+					break;
+					
+					case 37:
+					case 65:
+						//left and A
+						keyEvents.left = true;
+					break;
+
+					case 88:
+	    				// X key
+	    				showScore();
+	    			break;
+
+	    			
+				}
+				
+				    	
+	    }, false);
+	    
+	    
+	    window.addEventListener( 'keyup', function(event) {
+	    	
+	    	var key = event.keyCode || event.which;
+	    	
+	    		
+	    	
+	    		switch (key) {
+	    			case 38:
+	    			case 87:
+	    				//up and W
+	    				keyEvents.up = false;
+	    			break;
+	    			
+	    			case 40:
+	    			case 83:
+	    				//down and S
+	    				keyEvents.down = false;
+	    			break;
+	    			
+	    			case 39:
+	    			case 68:
+	    				//right and D
+	    				keyEvents.right = false;
+	    			break;
+	    			
+	    			case 37:
+	    			case 65:
+	    				//left and A
+	    				keyEvents.left = false;
+	    			break;
+
+	    			case 88:
+	    				// X key
+	    				hideScore();
+	    			break;
+	    			
+	    			case 78:
+	    				// N key
+	    				newGame();
+	    			break;
+	    			
+	    		}
+	    		
+	    	
+	    }, false);
+	    
+	    
+
+	    var	mouseDown = false,
+	    	mouseDownX;
+	    
+	    window.addEventListener( 'mousemove', function(event) {
+	    	
+	    	if( mouseDown ){	
+	    	
+	    		var diff = event.pageX - mouseDownX;
+	    	
+				var theta = ( diff * Math.PI * 2 ) / window.innerWidth;
+	    	
+		    	camera.rotation.y -= theta;
+	    		
+	    		mouseDownX = event.pageX;
+	    		
+		    	cameraRotationChanged = true;
+	    		
+	    		maze.paint2D( ctx, scale );	
+	    	}
+	    	
+	    }, false);
+	    
+	    
+	    window.addEventListener( 'mousedown' , function(event) {
+			mouseDownX = event.pageX;
+	    	mouseDown = true;
+	    	
+	    }, false);
+	    
+	    window.addEventListener( 'mouseup' , function(event) {	    
+	       	mouseDown = false;
+	    }, false);
+	    
+	    
+window.onload = function(){
+
+	youImage = new Image();
+	finishImage = new Image();
+    youImage.src = "resources/you.png";
+    finishImage.src = "resources/finish.png";
+
+    	init();
+    	animate();
+
+};
+
+</script>
+
+
+
+
+<script type="text/javascript">
+
+
+	  var _gaq = _gaq || [];
+
+	  _gaq.push(['_setAccount', 'UA-23224430-2']);
+
+	  _gaq.push(['_trackPageview']);
+
+
+
+	  (function() {
+
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+
+	  })();
+
+
+
+</script>
+
+
+
+</body>
+</html>
