@@ -15,15 +15,14 @@
         left: 0;
         right: 0;
         bottom: 0;
-        display: none;
       }
     </style>
   </head>
   <body>
-    <div id="example"></div>
 
-  <video id="video" width="640" height="480" autoplay style="z-index:1000;"></video>
+  <video id="video" width="640" height="480" autoplay style="display:none;"></video>
   <button id="snap">Snap Photo</button>
+  <div id="example"></div>
   <!--<canvas id="canvas" width="640" height="480"></canvas>-->
 
   <script src="js/third-party/threejs/three.min.js"></script>
@@ -36,12 +35,9 @@
     var effect, controls;
     var element, container;
     var sources = [];
-    var first = true, averagelightness, averagelightnessLast, totalLightness = 0, totalLightnessLast = 0, pixels, pixelsLast, canvas, ctx, video;
+    var first = true, averageLightness, averageLightnessLast, totalLightness = 0, totalLightnessLast = 0, pixels, pixelsLast, canvas, ctx, video;
 
     var clock = new THREE.Clock();
-
-    //init();
-    //animate();
 
     function init() {
       renderer = new THREE.WebGLRenderer();
@@ -124,8 +120,23 @@
       effect.setSize(width, height);
     }
 
+    function getVelocity(){
+      if(averageLightness&&averageLightnessLast){
+        var dL = averageLightness-averageLightnessLast;
+        console.log(dL)
+        return 0.02-dL;
+      }
+      return 0;
+    }
+
     function update(dt) {
       resize();
+
+      var velocity = getVelocity();
+
+      camera.translateZ( - velocity );
+
+      //camera.translateZ (-400);
 
       camera.updateProjectionMatrix();
 
@@ -215,6 +226,9 @@
         video.play();
       }, errBack);
     }
+
+    init();
+    animate();
   };
 
   function startCalculate(){
@@ -232,24 +246,24 @@
         }
         calculateAverages();
       }
-    }, 2000);
+    }, 200);
   }
 
   function calculateAverages(){
-    for (var i = 0; i < canvas.width + 4; i++) {
-      for (var j = 0; j < canvas.height + 4; j++) {
+    for (var i = 0; i < canvas.width/4; i++) {
+      for (var j = 0; j < canvas.height/4; j++) {
         totalLightness+=getHSL(i,j,pixels).l;
         totalLightnessLast+=getHSL(i,j,pixelsLast).l;
       };
     };
     averageLightness=totalLightness/(canvas.width*canvas.height);
-    console.log(averageLightness+"averagelightness");
+    //console.log(averageLightness+"averagelightness");
     averageLightnessLast=totalLightnessLast/(canvas.width*canvas.height);
-    console.log(averageLightnessLast+"averagelightnessLast");
+    //console.log(averageLightnessLast+"averagelightnessLast");
   }
 
   function getHSL(x,y, array){
-    var base = (Math.floor(y) * (canvas.width + 1) + Math.floor(x)) * 4;
+    var base = (Math.floor(y) * (canvas.width/4) + Math.floor(x)) * 4;
     var c = {
       r: array[base + 0],
       g: array[base + 1],
