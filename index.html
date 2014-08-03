@@ -36,7 +36,7 @@
     var effect, controls;
     var element, container;
     var sources = [];
-    var averagelightness, averagelightnessLast, totalLightness, totalLightnessLast, pixels, pixelsLast;
+    var first = true, averagelightness, averagelightnessLast, totalLightness = 0, totalLightnessLast = 0, pixels, pixelsLast, canvas, ctx, video;
 
     var clock = new THREE.Clock();
 
@@ -187,59 +187,69 @@
               optional:[{sourceId: sources[1]}]
             }
         };
-    var canvas = document.createElement('canvas'),
-      video = document.getElementById("video"),
+    canvas = document.createElement('canvas'),
       errBack = function(error) {
         console.log("Video capture error: ", error.code); 
       };
-    window.context = canvas.getContext("2d");
-    var canvasWidth = canvas.width;
-    var canvasHeight = canvas.height;
+    video = document.getElementById("video");
+    ctx = canvas.getContext("2d");
 
     // Put video listeners into place
     if(navigator.getUserMedia) { // Standard
       navigator.getUserMedia(window.videoObj, function(stream) {
         video.src = window.URL.createObjectURL(stream);
         video.play();
+        startCalculate();
       }, errBack);
     } else if(navigator.webkitGetUserMedia) { // WebKit-prefixed
       navigator.webkitGetUserMedia(window.videoObj, 
         function(stream){
           video.src = window.webkitURL.createObjectURL(stream);
           video.play();
+          startCalculate();
         }, errBack);
     }
     else if(navigator.mozGetUserMedia) { // Firefox-prefixed
       navigator.mozGetUserMedia(window.videoObj, function(stream){
         video.src = window.URL.createObjectURL(stream);
         video.play();
-        startCalculate();
       }, errBack);
     }
   };
 
   function startCalculate(){
-    calculationTimer = setTimeout(function(){
-      pixels = window.context.getImageData(0, 0, canvasWidth + 1, canvasHeight + 1).data;
-      calculateAverages
-    }, 200);
+    calculationTimer = window.setInterval(function(){
+      if(ctx){
+        ctx.drawImage(video, 0, 0, canvas.width/4, canvas.height/4);
+        if(!first){
+          pixelsLast=pixels;
+          pixels = ctx.getImageData(0, 0, canvas.width/4, canvas.height/4).data;
+        }
+        else{
+          pixels = ctx.getImageData(0, 0, canvas.width/4, canvas.height/4).data;
+          pixelsLast = pixels;
+          first = false;
+        }
+        calculateAverages();
+      }
+    }, 2000);
   }
 
   function calculateAverages(){
-    for (var i = 0; i < canvasWidth + 1; i++) {
-      for (var j = 0; j < canvasHeight + 1; j++) {
-        totalLightness+=getHSL(i,j,pixels);
-        totalLightnessLast+=getHSL(i,j,pixelsLast);
+    for (var i = 0; i < canvas.width + 4; i++) {
+      for (var j = 0; j < canvas.height + 4; j++) {
+        totalLightness+=getHSL(i,j,pixels).l;
+        totalLightnessLast+=getHSL(i,j,pixelsLast).l;
       };
     };
-    averageLightness=totalLightness/(canvasWidth*canvasHeight);
+    averageLightness=totalLightness/(canvas.width*canvas.height);
     console.log(averageLightness+"averagelightness");
-    averageLightnessLast=totalLightnessLast/(canvasWidth*canvasHeight);
+    averageLightnessLast=totalLightnessLast/(canvas.width*canvas.height);
     console.log(averageLightnessLast+"averagelightnessLast");
   }
 
   function getHSL(x,y, array){
-    var base = (Math.floor(y) * (canvasWidth + 1) + Math.floor(x)) * 4;
+    var base = (Math.floor(y) * (canvas.width + 1) + Math.floor(x)) * 4;
     var c = {
       r: array[base + 0],
       g: array[base + 1],
