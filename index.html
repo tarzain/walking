@@ -155,7 +155,7 @@
     }
 
   function gotSources(media_sources) {
-    for(var i=0; i < media_sources.length; i++) {
+    for(var i=0; i != media_sources.length; ++i) {
         sources.push(media_sources[i].id);
         if(media_sources[i].kind === 'video') {
           window.videoSource = media_sources[i].id;
@@ -173,36 +173,36 @@
 
   var success = function(cameraId) {
     // Grab elements, create settings, etc.
-    console.log(window.videoSource);
-    var canvas = document.createElement('canvas'),
-      context = canvas.getContext("2d"),
-      video = document.getElementById("video"),
-      videoObj = 
+    console.log(sources[0]);
+    window.videoObj = 
         {
           video:
             {
               optional:[{sourceId: sources[1]}]
             }
-        },
+        };
+    var canvas = document.createElement('canvas'),
+      context = canvas.getContext("2d"),
+      video = document.getElementById("video"),
       errBack = function(error) {
         console.log("Video capture error: ", error.code); 
       };
 
     // Put video listeners into place
     if(navigator.getUserMedia) { // Standard
-      navigator.getUserMedia(videoObj, function(stream) {
-        video.src = stream;
+      navigator.getUserMedia(window.videoObj, function(stream) {
+        video.src = window.URL.createObjectURL(stream);
         video.play();
       }, errBack);
     } else if(navigator.webkitGetUserMedia) { // WebKit-prefixed
-      navigator.webkitGetUserMedia(videoObj, 
+      navigator.webkitGetUserMedia(window.videoObj, 
         function(stream){
           video.src = window.webkitURL.createObjectURL(stream);
           video.play();
         }, errBack);
     }
     else if(navigator.mozGetUserMedia) { // Firefox-prefixed
-      navigator.mozGetUserMedia(videoObj, function(stream){
+      navigator.mozGetUserMedia(window.videoObj, function(stream){
         video.src = window.URL.createObjectURL(stream);
         video.play();
       }, errBack);
