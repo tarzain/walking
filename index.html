@@ -29,17 +29,30 @@
   <script src="js/third-party/threejs/StereoEffect.js"></script>
   <script src="js/third-party/threejs/DeviceOrientationControls.js"></script>
   <script src="js/third-party/threejs/OrbitControls.js"></script>
+  <script src="js/third-party/threejs/stats.min.js"></script>
 
   <script>
     var camera, scene, renderer;
     var effect, controls;
-    var element, container;
+    var element, container, mesh, animation, projector;
     var sources = [];
     var first = true, averageLightness, averageLightnessLast, totalLightness = 0, totalLightnessLast = 0, pixels, pixelsLast, canvas, ctx, video;
 
     var clock = new THREE.Clock();
 
     function init() {
+
+      container = document.createElement( 'div' );
+      document.body.appendChild( container );
+
+      var info = document.createElement( 'div' );
+      info.style.position = 'absolute';
+      info.style.top = '10px';
+      info.style.width = '100%';
+      info.style.textAlign = 'center';
+      info.innerHTML = '<a href="http://threejs.org" target="_blank">three.js</a> webgl - morph targets - horse. model by <a href="http://mirada.com/">mirada</a> from <a href="http://ro.me">rome</a>';
+      container.appendChild( info );
+
       renderer = new THREE.WebGLRenderer();
       element = renderer.domElement;
       container = document.getElementById('example');
@@ -60,9 +73,27 @@
         camera.position.y,
         camera.position.z
       );
+      // camera.target = new THREE.Vector3( 0, 150, 0 );
       controls.noZoom = true;
       controls.noPan = true;
       controls.autoRotate = true;
+
+
+      var loader = new THREE.JSONLoader( true );
+        loader.load( "js/models/horse.js", function( geometry ) {
+
+          mesh = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial( { color: 0xCCFFFF, morphTargets: true } ) );
+          mesh.position.set(100, 0, 0);
+
+          mesh.scale.set( 1.5, 1.5, 1.5 );
+          scene.add( mesh );
+          var light3 = new THREE.DirectionalLight( 0xefefff, 1 );
+          light3.position.set( 1, 1, 1 ).normalize();
+          scene.add( light3 );
+          light3.target = mesh;
+          animation = new THREE.MorphAnimation( mesh );
+          animation.play();
+        });
 
       function setOrientationControls(e) {
         if (!e.alpha) {
@@ -82,6 +113,9 @@
 
       var light = new THREE.HemisphereLight(0x777777, 0x000000, 0.6);
       scene.add(light);
+
+
+
 
       var texture = THREE.ImageUtils.loadTexture(
         'textures/patterns/checker.png'
@@ -151,10 +185,37 @@
 
     function animate(t) {
       requestAnimationFrame(animate);
-
+      // render()
       update(clock.getDelta());
       render(clock.getDelta());
     }
+
+      // var radius = 600;
+      // var theta = 0;
+
+      // var prevTime = Date.now();
+
+      // function render() {
+
+      //   theta += 0.1;
+
+      //   // camera.position.x = radius * Math.sin( THREE.Math.degToRad( theta ) );
+      //   // camera.position.z = radius * Math.cos( THREE.Math.degToRad( theta ) );
+
+      //   // camera.lookAt( camera.target );
+
+      //   if ( animation ) {
+
+      //     var time = Date.now();
+
+      //     animation.update( time - prevTime );
+
+      //     prevTime = time;
+
+      //   }
+      //           renderer.render( scene, camera );
+
+      // }
 
     function fullscreen() {
       if (container.requestFullscreen) {
