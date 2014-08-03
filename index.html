@@ -36,7 +36,7 @@
     var effect, controls;
     var element, container, mesh, animation, projector;
     var sources = [];
-    var first = true, averageLightness, averageLightnessLast, totalLightness = 0, totalLightnessLast = 0, pixels, pixelsLast, canvas, ctx, video;
+    var first = true, averageLightness, averageLightnessLast, totalLightness = 0, totalLightnessLast = 0, scale = 16, pixels, pixelsLast, canvas, ctx, video;
 
     var clock = new THREE.Clock();
 
@@ -157,7 +157,7 @@
     function getVelocity(){
       if(averageLightness&&averageLightnessLast){
         var dL = averageLightness-averageLightnessLast;
-        return Math.abs(dL-0.03)*1000;
+        return Math.abs(dL);
       }
       return 0;
     }
@@ -166,10 +166,11 @@
       resize();
 
       var velocity = getVelocity();
-              console.log(velocity);
+              console.log(velocity*100);
 
-      if(velocity > 1.8){
-        camera.translateZ( - velocity * dt);
+
+      if(Math.abs((velocity *100)>1)){
+       camera.translateZ( - velocity * 100 * dt );
       }
 
       //camera.translateZ (-400);
@@ -297,36 +298,38 @@
   function startCalculate(){
     calculationTimer = window.setInterval(function(){
       if(ctx){
-        ctx.drawImage(video, 0, 0, canvas.width/4, canvas.height/4);
+        ctx.drawImage(video, 0, 0, canvas.width/scale, canvas.height/scale);
         if(!first){
           pixelsLast=pixels;
-          pixels = ctx.getImageData(0, 0, canvas.width/4, canvas.height/4).data;
+          pixels = ctx.getImageData(0, 0, canvas.width/scale, canvas.height/scale).data;
         }
         else{
-          pixels = ctx.getImageData(0, 0, canvas.width/4, canvas.height/4).data;
+          pixels = ctx.getImageData(0, 0, canvas.width/scale, canvas.height/scale).data;
           pixelsLast = pixels;
           first = false;
         }
         calculateAverages();
       }
-    }, 2000);
+    }, 500);
   }
 
   function calculateAverages(){
-    for (var i = 0; i < canvas.width/4; i++) {
-      for (var j = 0; j < canvas.height/4; j++) {
+    for (var i = 0; i < canvas.width/scale; i++) {
+      for (var j = 0; j < canvas.height/scale; j++) {
         totalLightness+=getHSL(i,j,pixels).l;
         totalLightnessLast+=getHSL(i,j,pixelsLast).l;
       };
     };
-    averageLightness=totalLightness/(canvas.width*canvas.height);
+    averageLightness=totalLightness/((canvas.width*canvas.height)/(scale*scale));
     //console.log(averageLightness+"averagelightness");
-    averageLightnessLast=totalLightnessLast/(canvas.width*canvas.height);
+    averageLightnessLast=totalLightnessLast/((canvas.width*canvas.height)/(scale*scale));
     //console.log(averageLightnessLast+"averagelightnessLast");
+    totalLightness = 0;
+    totalLightnessLast = 0;
   }
 
   function getHSL(x,y, array){
-    var base = (Math.floor(y) * (canvas.width/4) + Math.floor(x)) * 4;
+    var base = (Math.floor(y) * (canvas.width/scale) + Math.floor(x)) * 4;
     var c = {
       r: array[base + 0],
       g: array[base + 1],
